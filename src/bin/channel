@@ -1,0 +1,68 @@
+use rand::{Rng, thread_rng};
+use std::sync::mpsc;
+use std::{thread, time};
+use std::sync::mpsc::{Receiver, Sender};
+
+static NTHREADS: i32 = 30;
+
+fn main() {
+    // Channels have two endpoints: the `Sender<T>` and the `Receiver<T>`,
+    // where `T` is the type of the message to be transferred
+    // (type annotation is superfluous)
+    let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+    let mut children = Vec::new();
+
+    let  mut rng = rand::thread_rng();
+    for id in 0..NTHREADS {
+        // The sender endpoint can be copied
+        let thread_tx = tx.clone();
+
+        // Each thread will send its id via the channel
+        let child = thread::spawn(move || {
+            // The thread takes ownership over `thread_tx`
+            // Each thread queues a message in the channel
+            // let  random =rng.gen::<i32>();
+            thread_tx.send(id).unwrap();
+
+let body = reqwest::blocking::get("http://worldclockapi.com/api/json/est/now").unwrap().text().unwrap();
+    let res = reqwest::blocking::get(
+       "http://worldtimeapi.org/api/timezone/Europe/London");
+            // Sending is a non-blocking operation, the thread will continue
+            // immediately after sending its message
+            println!("thread {} finished {}", id,body);
+
+        });
+
+        children.push(child);
+    }
+
+    let timer = time::Duration::from_millis(2111);
+    // thread::sleep(timer);
+    // Here, all the messages are collected
+    let mut ids = Vec::with_capacity(NTHREADS as usize);
+    for _ in 0..NTHREADS {
+        // The `recv` method picks a message from the channel
+        // `recv` will block the current thread if there are no messages available
+        ids.push(rx.recv());
+    }
+
+    // Wait for the threads to complete any remaining work
+    for child in children {
+        child.join().expect("oops! the child thread panicked");
+    }
+
+    // Show the order in which the messages were sent
+    println!("{:?}", ids);
+}
+
+async fn async_request() -> Result<(), Box<dyn std::error::Error>> {
+    let res = reqwest::get(
+       "https://api-adresse.data.gouv.fr/search/?q=8+bd+du+port&postcode=44380
+        ").await?;
+    println!("Status: {}", res.status());
+    println!("Headers:\n{:#?}", res.headers());
+
+    let body = res.text().await?;
+    println!("Body:\n{}", body);
+    Ok(())
+}
